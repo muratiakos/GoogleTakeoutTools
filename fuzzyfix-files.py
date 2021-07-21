@@ -9,50 +9,85 @@ import subprocess
 
 from mutagen.easyid3 import EasyID3
 from fuzzywuzzy import process
+from fuzzywuzzy import fuzz
+
+converter = re.compile(r'[-_\(\)]',re.U)
 
 takeout_csv = '/Users/akos.murati/Downloads/Music/music-uploads-metadata2.csv'
 tag_lookup = {}
+skip_first = 0
 
 path = '/Users/akos.murati/Downloads/Music/_mess' #os.getcwd()
 fpath = u"%s/*.mp3" % path
-files = glob.glob(fpath)
 
-def title_hash(orig):
-    return re.sub(r'[\W\d]','',orig.lower())
+
+def convert_simple(orig):
+    new = converter.sub('',orig.lower())
+    return new.strip()
+
+
+def lookup_fuzzy(pattern):
+    closest = process.extractOne(pattern.lower(),tag_lookup.keys(),scorer=fuzz.UQRatio)
+    print('\t - ', closest[0], "(by ~", closest[1], '% fuzzy proximity)')
+    if (closest[1]<60):
+        print('\t WARNING: too fuzzy..')
+        return None
+    return tag_lookup.get(closest[0])
 
 # Build tag Lookup hash
 with open(takeout_csv) as csvfile:
     tagreader = csv.DictReader(csvfile)
     for row in tagreader:
-        tag_lookup[title_hash(row['Title'].lower())]=row
+        title_only = row['Title'].lower()
+        full = '{0} - {1}'.format(row['Artists'], row['Title']).lower()
+
+        tag_lookup[title_only]=row
+        tag_lookup[convert_simple(title_only)]=row
+        #tag_lookup[full]=row
+        #tag_lookup[convert_simple(full)]=row
 
 # Fix MP3 tags
+c=0
+files = glob.glob(fpath)
+total = 0 #files.len()
 for fname in files:
-    print('\n\n>>> PROCESSING: ',fname)
+    c=c+1
+    print('\n\n>>> FILE {0}/{1}: {2}'.format(c,total,fname))
+
+    if (c<skip_first):
+        print('<<< SKIP.')
+
     # Reeading IDv3 Tags
     file_tags = EasyID3(fname)
-    print('\tMP3 tags:', file_tags)
+    print('\tCurrent MP3 tags:', file_tags)
 
-    # Getting lookup title
+    # Getting lookup names
     file_name=fname.split('/')[-1]
     name=re.sub('.mp3$','',file_name)
-    lookup_title = title_hash(name)
-    print('\tLookup tags:\n\t - ', lookup_title)
     
-    # Lookup by file
-    tag=tag_lookup.get(lookup_title)
+    # Lookup by file name
+    print('\tLookup tags:')
+    print('\t - ', name)
+    tag=tag_lookup.get(name.lower())
 
-    # If Unsuccessful try lookup by tag
-    if (tag == None and file_tags.get('title') != None):
-        lookup_title = title_hash(file_tags.get('title')[0])
-        print('\t - ', lookup_title, "(by TAG title)")
+    # Lookup by file name simplified
+    if (tag == None):
+        lookup_title = convert_simple(name)
+        print('\t - ', lookup_title)
         tag=tag_lookup.get(lookup_title)
 
+    # # If Unsuccessful try lookup by tag
+    # if (tag == None and file_tags.get('title') != None):
+    #     lookup_title = convert_simple(file_tags.get('title')[0])
+    #     print('\t - ', lookup_title, "(by TAG title)")
+    #     tag=tag_lookup.get(lookup_title)
+
     # Fuzzy match as last resort
+    #if (tag == None):
+    #    tag=lookup_fuzzy(name)
+
     if (tag == None):
-        closest = process.extractOne(lookup_title,tag_lookup.keys())
-        print('\t - ', closest[0], "(by ~", closest[1], '% fuzzy proximity)')
-        tag=tag_lookup.get(closest[0])
+        tag=lookup_fuzzy(convert_simple(name))
 
     # Reconciling
     if (tag):
