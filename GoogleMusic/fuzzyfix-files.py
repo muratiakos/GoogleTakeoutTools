@@ -6,18 +6,17 @@ import glob
 import csv
 import subprocess
 
-
 from mutagen.easyid3 import EasyID3
 from fuzzywuzzy import process
 from fuzzywuzzy import fuzz
 
 converter = re.compile(r'[-_\(\)]',re.U)
 
-takeout_csv = '/Users/akos.murati/Downloads/Music/music-uploads-metadata2.csv'
+takeout_csv = '~/Downloads/Music/music-uploads-metadata2.csv'
+path = '~/Downloads/Music/_mess' #os.getcwd()
 tag_lookup = {}
 skip_first = 0
 
-path = '/Users/akos.murati/Downloads/Music/_mess' #os.getcwd()
 fpath = u"%s/*.mp3" % path
 
 
