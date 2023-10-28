@@ -6,3 +6,5 @@ files fr various purposes
  - `Google Music` - Fixing MP3 IDv3 tags from broken Youtube Music takeouts
  - `Google Photos` - Separating photos based on metadata tags
 
+## Development
+ - Mainly `Python 3.11` source
