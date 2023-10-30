@@ -2,7 +2,7 @@ import os
 import json
 import sys
 
-root_folder = "/Users/makos/Downloads/Zoli/Google/Google Fotók"
+root_folder = "~/Downloads/Google Photos/"
 
 # Folder contents
 # - *.JPG
